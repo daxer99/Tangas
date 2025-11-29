@@ -460,27 +460,51 @@ class ImageGenerator:
         return placeholder
 
     def load_fonts(self, canvas_width, product_name):
-        """Cargar fuentes con tamaño dinámico basado en el ancho del canvas y largo del nombre"""
+        """Cargar fuentes con tamaños fijos grandes"""
         try:
-            # Tamaño base según el ancho del canvas
-            base_font_size = max(20, canvas_width // 30)
+            # TAMAÑOS FIJOS GRANDES (igual en local y en servidor)
+            title_font_size = 36  # Título grande
+            price_font_size = 52  # Precio muy grande
+            table_font_size = 14  # Tabla normal
 
-            # Ajustar tamaño según la longitud del nombre del producto
-            name_length = len(product_name)
-            if name_length > 50:
-                title_font_size = max(16, base_font_size - 6)  # Más pequeño para nombres largos
-            elif name_length > 30:
-                title_font_size = max(18, base_font_size - 4)  # Mediano
+            # Intentar diferentes fuentes
+            font_loaded = False
+            font = None
+
+            # Lista de fuentes a probar (en orden de preferencia)
+            font_paths = [
+                "arial.ttf",
+                "DejaVuSans.ttf",
+                "LiberationSans-Regular.ttf"
+            ]
+
+            for font_path in font_paths:
+                try:
+                    font = ImageFont.truetype(font_path, title_font_size)
+                    font_loaded = True
+                    print(f"✅ Fuente cargada: {font_path}")
+                    break
+                except:
+                    continue
+
+            if font_loaded:
+                title_font = ImageFont.truetype(font_path, title_font_size)
+                price_font = ImageFont.truetype(font_path, price_font_size)
+                table_font = ImageFont.truetype(font_path, table_font_size)
             else:
-                title_font_size = base_font_size  # Tamaño normal
+                # Fuentes por defecto con tamaños aumentados
+                print("⚠️  Usando fuentes por defecto - aumentando tamaño")
+                title_font = ImageFont.load_default()
+                price_font = ImageFont.load_default()
+                table_font = ImageFont.load_default()
+                # Aumentar significativamente para fuentes por defecto
+                title_font_size = 50
+                price_font_size = 70
 
-            title_font = ImageFont.truetype("arial.ttf", title_font_size)
-            price_font = ImageFont.truetype("arial.ttf", int(base_font_size * 1.5))
-            table_font = ImageFont.truetype("arial.ttf", max(12, base_font_size - 6))
+            print(f"🎯 Tamaños finales - Título: {title_font_size}px, Precio: {price_font_size}px")
 
-            print(f"📝 Tamaño de fuente título: {title_font_size}px (longitud nombre: {name_length} caracteres)")
-
-        except:
+        except Exception as e:
+            print(f"❌ Error cargando fuentes: {e}")
             title_font = ImageFont.load_default()
             price_font = ImageFont.load_default()
             table_font = ImageFont.load_default()
