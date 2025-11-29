@@ -7,7 +7,7 @@ import os
 import re
 import urllib.parse
 import math
-import time
+import hashlib
 
 app = Flask(__name__)
 
@@ -272,7 +272,7 @@ class ImageGenerator:
             self.draw_texts(draw, product_data['name'], modified_price, title_font, price_font,
                             canvas_width, canvas_height, adjusted_product_position, product_size)
 
-            # NO guardar automáticamente - devolver imagen en memoria
+            # Devolver imagen en memoria (sin guardar)
             return final_image
 
         except Exception as e:
@@ -674,87 +674,78 @@ def generate_image():
     if 'error' in product_data:
         return jsonify({'success': False, 'error': product_data['error']})
 
-    # Generar imagen (sin guardar automáticamente)
+    # Generar imagen (sin guardar)
     final_image = image_gen.generate_product_image(product_data, formula)
 
     if final_image:
-        # Crear directorio temporal si no existe
-        if not os.path.exists('temp_images'):
-            os.makedirs('temp_images')
-
-        # Crear nombre único para el archivo temporal
-        timestamp = int(time.time())
-        safe_name = re.sub(r'[^\w\-_.]', '_', product_data['name'])
-        filename = f"temp_images/{safe_name}_{timestamp}.jpg"
-
-        # Guardar temporalmente solo para la descarga
-        final_image.save(filename, quality=95)
-        print(f"💾 Imagen temporal guardada: {filename}")
+        # Crear un ID único para la imagen
+        image_id = hashlib.md5(f"{url}{formula}".encode()).hexdigest()[:10]
 
         return jsonify({
             'success': True,
-            'image_url': f'/download/{os.path.basename(filename)}',
+            'image_url': f'/download/{image_id}?url={urllib.parse.quote(url)}&formula={urllib.parse.quote(formula)}',
             'product_data': product_data
         })
     else:
         return jsonify({'success': False, 'error': 'Error generando imagen'})
 
 
-@app.route('/download/<filename>')
-def download_file(filename):
+@app.route('/download/<image_id>')
+def download_file(image_id):
     try:
-        filepath = f'temp_images/{filename}'
-        download_name = f"producto_{filename}"
-        response = send_file(filepath, as_attachment=True, download_name=download_name)
+        # Obtener parámetros de la URL
+        product_url = request.args.get('url')
+        formula = request.args.get('formula', 'x * 1.3')
 
-        # Opcional: programar eliminación del archivo temporal después de 1 minuto
-        def cleanup_temp_file():
-            import threading
-            def delete_file():
-                time.sleep(60)  # Esperar 1 minuto
-                if os.path.exists(filepath):
-                    os.remove(filepath)
-                    print(f"🗑️ Archivo temporal eliminado: {filepath}")
+        if not product_url:
+            return jsonify({'success': False, 'error': 'URL no proporcionada'})
 
-            threading.Thread(target=delete_file).start()
+        print(f"📥 Generando imagen para descarga: {product_url}")
 
-        cleanup_temp_file()
+        # Obtener datos del producto
+        product_data = scraper.scrape_product(product_url)
 
-        return response
-    except FileNotFoundError:
-        return jsonify({'success': False, 'error': 'Archivo no encontrado'})
+        if 'error' in product_data:
+            return jsonify({'success': False, 'error': product_data['error']})
 
+        # Generar imagen al vuelo
+        final_image = image_gen.generate_product_image(product_data, formula)
 
-# Función para limpiar archivos temporales antiguos al iniciar
-def cleanup_old_temp_files():
-    """Eliminar archivos temporales con más de 1 hora de antigüedad"""
-    if not os.path.exists('temp_images'):
-        return
+        if not final_image:
+            return jsonify({'success': False, 'error': 'Error generando imagen'})
 
-    current_time = time.time()
-    for filename in os.listdir('temp_images'):
-        filepath = os.path.join('temp_images', filename)
-        if os.path.isfile(filepath):
-            file_age = current_time - os.path.getctime(filepath)
-            if file_age > 3600:  # 1 hora en segundos
-                os.remove(filepath)
-                print(f"🗑️ Archivo temporal antiguo eliminado: {filename}")
+        # Convertir a bytes en memoria
+        img_io = io.BytesIO()
+        final_image.save(img_io, 'JPEG', quality=95)
+        img_io.seek(0)
+
+        # Crear nombre de archivo para descarga
+        safe_name = re.sub(r'[^\w\-_.]', '_', product_data['name'])
+        filename = f"producto_{safe_name}.jpg"
+
+        # Enviar imagen directamente sin guardar
+        return send_file(
+            img_io,
+            mimetype='image/jpeg',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        print(f"❌ Error en descarga: {e}")
+        return jsonify({'success': False, 'error': 'Error generando imagen para descarga'})
 
 
 if __name__ == '__main__':
-    # Limpiar archivos temporales antiguos al iniciar
-    cleanup_old_temp_files()
+    # Configuración para producción
+    port = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("DEBUG", "False").lower() == "true"
 
-    # Crear directorios necesarios
-    if not os.path.exists('temp_images'):
-        os.makedirs('temp_images')
+    print("🚀 Servidor iniciado - Modo sin almacenamiento temporal")
+    print("💡 Las imágenes se generan al vuelo sin guardar archivos")
 
-    print("🎉 Servidor iniciado correctamente!")
-    print("📍 URL: http://localhost:5000")
-    print("💡 Características:")
-    print("   ✅ Scraping automático de Paulina Mayorista")
-    print("   ✅ Tabla de talles y colores")
-    print("   ✅ Redondeo inteligente de precios")
-    print("   ✅ Texto dinámico adaptable")
-    print("   ✅ Guardado solo al descargar")
-    app.run(debug=True, port=5000)
+    app.run(
+        host="0.0.0.0",
+        port=port,
+        debug=debug
+    )
