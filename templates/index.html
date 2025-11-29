@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Imágenes de Productos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .debug-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+            border-left: 4px solid #6c757d;
+        }
+
+        .debug-section h3 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .debug-btn {
+            background: #6c757d;
+            width: auto;
+            padding: 10px 20px;
+        }
+
+        .debug-btn:hover {
+            background: #545b62;
+        }
+
+        #result {
+            margin-top: 30px;
+            display: none;
+        }
+
+        #productImage {
+            max-width: 100%;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .product-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .success {
+            background: #d1edff;
+            color: #004085;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-left: 4px solid #007bff;
+        }
+
+        #debugResult {
+            margin-top: 15px;
+            display: none;
+        }
+
+        .debug-result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+
+        small {
+            color: #6c757d;
+            font-size: 12px;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛍️ Generador de Imágenes de Productos</h1>
+
+        <!-- Sección de Debug -->
+        <div class="debug-section">
+            <h3>🐛 Herramientas de Debug</h3>
+            <p>Si la imagen no se genera correctamente, usa esta herramienta para ver qué datos se están extrayendo:</p>
+            <button type="button" class="debug-btn" onclick="testScraping()">
+                🔍 Probar Scraping (Solo Datos)
+            </button>
+            <div id="debugResult">
+                <div class="debug-result" id="debugContent"></div>
+            </div>
+        </div>
+
+        <!-- Formulario Principal -->
+        <div class="form-section">
+            <form id="productForm">
+                <div class="form-group">
+                    <label for="productUrl">📋 URL del Producto:</label>
+                    <input type="url" id="productUrl" required
+                           placeholder="https://paulinamayorista.com.ar/productoparticular.php?id=5541"
+                           value="https://paulinamayorista.com.ar/productoparticular.php?id=5541&link=catalogos.php%3Fidmarca%3D0%26marca%26idcategoria%3D12%26idtemporada%3D0%26categoria%3DACCESORIOS">
+                    <small>Ejemplo: https://paulinamayorista.com.ar/productoparticular.php?id=5541</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="priceFormula">🧮 Fórmula de Precio (usa 'x' para precio original):</label>
+                    <input type="text" id="priceFormula"
+                           placeholder="x * 1.3 + 100" value="x * 1.3">
+                    <small>Ejemplos:
+                        <br>• x * 1.3 (30% aumento)
+                        <br>• x * 0.8 (20% descuento)
+                        <br>• x + 100 (suma fija)
+                        <br>• x * 1.5 - 50 (combinación)
+                    </small>
+                </div>
+
+                <button type="submit" id="submitBtn">🚀 Generar Imagen Completa</button>
+            </form>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading" style="display: none;">
+            <p>⏳ Procesando producto y generando imagen...</p>
+            <p><small>Esto puede tomar unos segundos</small></p>
+        </div>
+
+        <!-- Resultados -->
+        <div id="result">
+            <h3>📦 Información del Producto:</h3>
+            <div class="product-info">
+                <p><strong>Nombre:</strong> <span id="productName"></span></p>
+                <p><strong>Precio Original:</strong> $<span id="originalPrice"></span></p>
+                <p><strong>Precio Calculado:</strong> $<span id="calculatedPrice"></span></p>
+                <p><strong>Fórmula aplicada:</strong> <code id="formulaUsed"></code></p>
+            </div>
+
+            <h3>🖼️ Imagen Generada:</h3>
+            <img id="productImage" src="" alt="Imagen del producto generada">
+            <div>
+                <a id="downloadLink" class="download-btn">📥 Descargar Imagen</a>
+            </div>
+        </div>
+
+        <!-- Mensajes de Error -->
+        <div id="error" class="error" style="display: none;"></div>
+
+        <!-- Mensajes de Éxito -->
+        <div id="success" class="success" style="display: none;"></div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Función para probar el scraping (solo datos)
+        async function testScraping() {
+            const url = document.getElementById('productUrl').value;
+            if (!url) {
+                showError('Por favor, ingresa una URL primero');
+                return;
+            }
+
+            const debugResult = document.getElementById('debugResult');
+            const debugContent = document.getElementById('debugContent');
+
+            try {
+                debugContent.textContent = '⏳ Extrayendo datos...';
+                debugResult.style.display = 'block';
+
+                const response = await fetch('/debug-scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: url
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    debugContent.textContent = JSON.stringify(data.debug_data, null, 2);
+                    showSuccess('✅ Datos extraídos correctamente. Revisa la información arriba.');
+
+                    // Si encontramos datos, sugerir generar la imagen
+                    if (data.debug_data && !data.debug_data.error) {
+                        setTimeout(() => {
+                            if (confirm('¿Deseas generar la imagen con estos datos?')) {
+                                document.getElementById('priceFormula').focus();
+                            }
+                        }, 1000);
+                    }
+                } else {
+                    debugContent.textContent = 'Error: ' + JSON.stringify(data, null, 2);
+                    showError('❌ Error al extraer datos');
+                }
+
+            } catch (error) {
+                debugContent.textContent = 'Error de conexión: ' + error.message;
+                showError('❌ Error de conexión. Verifica que el servidor esté ejecutándose.');
+                console.error('Error:', error);
+            }
+        }
+
+        // Función principal para generar imagen
+        document.getElementById('productForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const url = document.getElementById('productUrl').value;
+            const formula = document.getElementById('priceFormula').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const error = document.getElementById('error');
+            const success = document.getElementById('success');
+
+            // Validaciones
+            if (!url) {
+                showError('Por favor, ingresa una URL');
+                return;
+            }
+
+            if (!formula.includes('x')) {
+                showError('La fórmula debe contener "x" para representar el precio original');
+                return;
+            }
+
+            // Reset UI
+            result.style.display = 'none';
+            error.style.display = 'none';
+            success.style.display = 'none';
+            loading.style.display = 'block';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/generate-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        formula: formula
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Mostrar información del producto
+                    document.getElementById('productName').textContent = data.product_data.name;
+                    document.getElementById('originalPrice').textContent = data.product_data.price.toFixed(2);
+
+                    // Calcular precio con fórmula
+                    const originalPrice = data.product_data.price;
+                    const calculatedPrice = calculatePrice(originalPrice, formula);
+                    document.getElementById('calculatedPrice').textContent = calculatedPrice.toFixed(2);
+                    document.getElementById('formulaUsed').textContent = formula;
+
+                    // Mostrar imagen
+                    document.getElementById('productImage').src = data.image_url + '?t=' + new Date().getTime();
+                    document.getElementById('downloadLink').href = data.image_url;
+
+                    result.style.display = 'block';
+                    showSuccess('✅ Imagen generada correctamente');
+
+                } else {
+                    showError('Error: ' + data.error);
+                    // Mostrar sugerencia de debug si hay error
+                    if (data.error.includes('scraping') || data.error.includes('extraer')) {
+                        showError('❌ ' + data.error + ' - Usa el botón "Probar Scraping" para debuguear.');
+                    }
+                }
+            } catch (error) {
+                showError('❌ Error de conexión. Verifica que el servidor esté ejecutándose.');
+                console.error('Error:', error);
+            } finally {
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Función para calcular precio con fórmula
+        function calculatePrice(originalPrice, formula) {
+            try {
+                // Reemplazar 'x' con el precio original y evaluar
+                const expression = formula.replace(/x/g, originalPrice.toString());
+                return eval(expression);
+            } catch (error) {
+                console.error('Error en fórmula:', error);
+                return originalPrice * 1.3; // Fallback
+            }
+        }
+
+        // Funciones auxiliares para mostrar mensajes
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            scrollToElement(errorDiv);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            scrollToElement(successDiv);
+        }
+
+        function scrollToElement(element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Ejemplo de uso rápido al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Aplicación cargada correctamente');
+            console.log('💡 Usa el botón "Probar Scraping" para debuguear problemas');
+        });
+    </script>
+</body>
+</html>
