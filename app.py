@@ -460,28 +460,40 @@ class ImageGenerator:
         return placeholder
 
     def load_fonts(self, canvas_width, product_name):
-        """Cargar fuentes con tamaños fijos grandes"""
+        """Cargar fuentes con título dinámico y precio fijo grande"""
         try:
-            # TAMAÑOS FIJOS GRANDES (igual en local y en servidor)
-            title_font_size = 36  # Título grande
-            price_font_size = 52  # Precio muy grande
-            table_font_size = 14  # Tabla normal
+            # TAMAÑO FIJO GRANDE para el precio (siempre igual)
+            price_font_size = 52
+            table_font_size = 14
 
-            # Intentar diferentes fuentes
+            # TAMAÑO DINÁMICO para el título (se ajusta según longitud)
+            name_length = len(product_name)
+
+            if name_length > 60:
+                title_font_size = 24  # Más pequeño para nombres muy largos
+            elif name_length > 40:
+                title_font_size = 28  # Mediano para nombres largos
+            elif name_length > 25:
+                title_font_size = 32  # Normal para nombres medianos
+            else:
+                title_font_size = 36  # Grande para nombres cortos
+
+            # Intentar cargar fuentes
             font_loaded = False
-            font = None
+            font_path = None
 
-            # Lista de fuentes a probar (en orden de preferencia)
+            # Lista de fuentes a probar
             font_paths = [
                 "arial.ttf",
                 "DejaVuSans.ttf",
                 "LiberationSans-Regular.ttf"
             ]
 
-            for font_path in font_paths:
+            for fp in font_paths:
                 try:
-                    font = ImageFont.truetype(font_path, title_font_size)
+                    font = ImageFont.truetype(fp, title_font_size)
                     font_loaded = True
+                    font_path = fp
                     print(f"✅ Fuente cargada: {font_path}")
                     break
                 except:
@@ -492,16 +504,23 @@ class ImageGenerator:
                 price_font = ImageFont.truetype(font_path, price_font_size)
                 table_font = ImageFont.truetype(font_path, table_font_size)
             else:
-                # Fuentes por defecto con tamaños aumentados
-                print("⚠️  Usando fuentes por defecto - aumentando tamaño")
+                # Fuentes por defecto con ajustes de tamaño
+                print("⚠️  Usando fuentes por defecto")
                 title_font = ImageFont.load_default()
                 price_font = ImageFont.load_default()
                 table_font = ImageFont.load_default()
-                # Aumentar significativamente para fuentes por defecto
-                title_font_size = 50
-                price_font_size = 70
+                # Ajustar tamaños para fuentes por defecto
+                if name_length > 60:
+                    title_font_size = 30
+                elif name_length > 40:
+                    title_font_size = 35
+                elif name_length > 25:
+                    title_font_size = 40
+                else:
+                    title_font_size = 45
+                price_font_size = 65
 
-            print(f"🎯 Tamaños finales - Título: {title_font_size}px, Precio: {price_font_size}px")
+            print(f"🎯 Tamaños - Título: {title_font_size}px ({name_length} chars), Precio: {price_font_size}px")
 
         except Exception as e:
             print(f"❌ Error cargando fuentes: {e}")
@@ -581,20 +600,20 @@ class ImageGenerator:
 
     def draw_texts(self, draw, name, price, title_font, price_font,
                    canvas_width, canvas_height, product_position, product_size):
-        """Dibujar textos en la imagen con posiciones dinámicas y texto ajustado"""
+        """Dibujar textos con espaciado dinámico"""
         product_x, product_y = product_position
         product_width, product_height = product_size
 
         # Calcular posición Y para los textos (debajo de la imagen)
         text_start_y = product_y + product_height + 30
 
-        # Dividir el nombre en líneas si es muy largo
+        # Dividir el nombre en líneas si es necesario
         wrapped_lines = self.wrap_text(name, title_font, canvas_width - 100)
 
         # Dibujar nombre del producto (puede ser multilínea)
         if isinstance(wrapped_lines, list):
-            # Texto multilínea
-            line_height = 35  # Espacio entre líneas
+            # Texto multilínea - espaciado dinámico según número de líneas
+            line_height = 40  # Espacio entre líneas aumentado
             total_text_height = len(wrapped_lines) * line_height
 
             for i, line in enumerate(wrapped_lines):
@@ -603,22 +622,22 @@ class ImageGenerator:
                           fill='black', font=title_font, anchor="mm")
 
             # Posición del precio después del nombre multilínea
-            price_y = text_start_y + total_text_height + 20
+            price_y = text_start_y + total_text_height + 25  # Más espacio
         else:
             # Texto de una línea
             draw.text((canvas_width // 2, text_start_y), wrapped_lines,
                       fill='black', font=title_font, anchor="mm")
-            price_y = text_start_y + 50
+            price_y = text_start_y + 60  # Más espacio para una línea
 
-        # Dibujar precio
+        # Dibujar precio (SIEMPRE GRANDE)
         price_text = f"${price:.2f}"
         draw.text((canvas_width // 2, price_y), price_text,
                   fill='red', font=price_font, anchor="mm")
 
     def wrap_text(self, text, font, max_width):
-        """Dividir texto en múltiples líneas si es muy ancho - VERSIÓN MEJORADA"""
+        """Dividir texto en múltiples líneas de forma más inteligente"""
         # Si el texto es corto, devolver como está
-        if len(text) <= 25:
+        if len(text) <= 30:
             return text
 
         words = text.split()
@@ -629,8 +648,8 @@ class ImageGenerator:
             # Probar si la línea actual + nueva palabra cabe
             test_line = ' '.join(current_line + [word])
 
-            # Estimación más precisa del ancho (basada en caracteres)
-            estimated_width = len(test_line) * 8  # Ajuste más preciso
+            # Estimación más inteligente del ancho
+            estimated_width = len(test_line) * 7  # Ajuste mejorado
 
             if estimated_width <= max_width:
                 current_line.append(word)
@@ -641,11 +660,20 @@ class ImageGenerator:
 
                 # Limitar a 3 líneas máximo
                 if len(lines) >= 2:  # Ya tenemos 2 líneas, esta sería la tercera
-                    remaining_words = ' '.join(current_line + words[words.index(word) + 1:])
-                    if len(remaining_words) > 15:  # Si queda mucho texto
-                        lines.append(remaining_words[:15] + "...")
+                    # Para la tercera línea, ser más agresivo con el truncamiento
+                    remaining_text = ' '.join(current_line + words[words.index(word) + 1:])
+                    if len(remaining_text) > 20:
+                        # Buscar un punto de corte natural
+                        if ' ' in remaining_text[:25]:
+                            cut_point = remaining_text[:25].rfind(' ')
+                            if cut_point > 15:
+                                lines.append(remaining_text[:cut_point] + "...")
+                            else:
+                                lines.append(remaining_text[:22] + "...")
+                        else:
+                            lines.append(remaining_text[:22] + "...")
                     else:
-                        lines.append(remaining_words)
+                        lines.append(remaining_text)
                     break
 
         if current_line and len(lines) < 3:
