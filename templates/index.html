@@ -208,17 +208,17 @@
                 <div class="form-group">
                     <label for="productUrl">📋 URL del Producto:</label>
                     <input type="url" id="productUrl" required
-                           placeholder="https://paulinamayorista.com.ar/productoparticular.php?id=5541"
-                           value="https://paulinamayorista.com.ar/productoparticular.php?id=5541&link=catalogos.php%3Fidmarca%3D0%26marca%26idcategoria%3D12%26idtemporada%3D0%26categoria%3DACCESORIOS">
+                           placeholder=""
+                           value="">
                     <small>Ejemplo: https://paulinamayorista.com.ar/productoparticular.php?id=5541</small>
                 </div>
 
                 <div class="form-group">
                     <label for="priceFormula">🧮 Fórmula de Precio (usa 'x' para precio original):</label>
                     <input type="text" id="priceFormula"
-                           placeholder="x * 1.3 + 100" value="x * 1.3">
+                           placeholder="x * 1.55 + 100" value="x * 1.55">
                     <small>Ejemplos:
-                        <br>• x * 1.3 (30% aumento)
+                        <br>• x * 1.55 (55% aumento)
                         <br>• x * 0.8 (20% descuento)
                         <br>• x + 100 (suma fija)
                         <br>• x * 1.5 - 50 (combinación)
@@ -398,7 +398,7 @@
                 return eval(expression);
             } catch (error) {
                 console.error('Error en fórmula:', error);
-                return originalPrice * 1.3; // Fallback
+                return originalPrice * 1.55; // Fallback
             }
         }
 
