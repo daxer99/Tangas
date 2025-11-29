@@ -600,20 +600,20 @@ class ImageGenerator:
 
     def draw_texts(self, draw, name, price, title_font, price_font,
                    canvas_width, canvas_height, product_position, product_size):
-        """Dibujar textos con espaciado dinámico"""
+        """Dibujar textos con mejor espaciado para múltiples líneas"""
         product_x, product_y = product_position
         product_width, product_height = product_size
 
-        # Calcular posición Y para los textos (debajo de la imagen)
-        text_start_y = product_y + product_height + 30
+        # Calcular posición Y para los textos
+        text_start_y = product_y + product_height + 35
 
-        # Dividir el nombre en líneas si es necesario
+        # Dividir el nombre en líneas
         wrapped_lines = self.wrap_text(name, title_font, canvas_width - 100)
 
-        # Dibujar nombre del producto (puede ser multilínea)
+        # Dibujar nombre del producto
         if isinstance(wrapped_lines, list):
-            # Texto multilínea - espaciado dinámico según número de líneas
-            line_height = 40  # Espacio entre líneas aumentado
+            # Texto multilínea
+            line_height = 38  # Espacio entre líneas
             total_text_height = len(wrapped_lines) * line_height
 
             for i, line in enumerate(wrapped_lines):
@@ -621,13 +621,13 @@ class ImageGenerator:
                 draw.text((canvas_width // 2, y_position), line,
                           fill='black', font=title_font, anchor="mm")
 
-            # Posición del precio después del nombre multilínea
-            price_y = text_start_y + total_text_height + 25  # Más espacio
+            # Posición del precio
+            price_y = text_start_y + total_text_height + 30
         else:
             # Texto de una línea
             draw.text((canvas_width // 2, text_start_y), wrapped_lines,
                       fill='black', font=title_font, anchor="mm")
-            price_y = text_start_y + 60  # Más espacio para una línea
+            price_y = text_start_y + 65
 
         # Dibujar precio (SIEMPRE GRANDE)
         price_text = f"${price:.2f}"
@@ -635,54 +635,75 @@ class ImageGenerator:
                   fill='red', font=price_font, anchor="mm")
 
     def wrap_text(self, text, font, max_width):
-        """Dividir texto en múltiples líneas de forma más inteligente"""
+        """Versión definitiva - Divide por palabras respetando límites"""
+        # Limpiar texto de espacios extras
+        text = ' '.join(text.split())
+
         # Si el texto es corto, devolver como está
-        if len(text) <= 30:
+        if len(text) <= 22:
             return text
+
+        # Límite de caracteres por línea (ajustado para mayúsculas)
+        base_chars_per_line = 22
+        uppercase_count = sum(1 for c in text if c.isupper())
+        total_chars = len(text)
+
+        if uppercase_count / total_chars > 0.6:  # Muchas mayúsculas
+            chars_per_line = 18
+        elif uppercase_count / total_chars > 0.4:  # Bastantes mayúsculas
+            chars_per_line = 20
+        else:  # Texto normal
+            chars_per_line = base_chars_per_line
 
         words = text.split()
         lines = []
         current_line = []
+        current_length = 0
 
         for word in words:
-            # Probar si la línea actual + nueva palabra cabe
-            test_line = ' '.join(current_line + [word])
+            word_len = len(word)
+            space_len = 1 if current_line else 0  # Espacio si no es primera palabra
 
-            # Estimación más inteligente del ancho
-            estimated_width = len(test_line) * 7  # Ajuste mejorado
-
-            if estimated_width <= max_width:
-                current_line.append(word)
-            else:
+            # Si agregar esta palabra excede el límite
+            if current_length + word_len + space_len > chars_per_line:
                 if current_line:
+                    # Guardar línea actual
                     lines.append(' '.join(current_line))
-                current_line = [word]
+                    current_line = []
+                    current_length = 0
 
-                # Limitar a 3 líneas máximo
-                if len(lines) >= 2:  # Ya tenemos 2 líneas, esta sería la tercera
-                    # Para la tercera línea, ser más agresivo con el truncamiento
-                    remaining_text = ' '.join(current_line + words[words.index(word) + 1:])
-                    if len(remaining_text) > 20:
-                        # Buscar un punto de corte natural
-                        if ' ' in remaining_text[:25]:
-                            cut_point = remaining_text[:25].rfind(' ')
-                            if cut_point > 15:
-                                lines.append(remaining_text[:cut_point] + "...")
+                # Si ya tenemos 2 líneas, manejar la tercera especial
+                if len(lines) >= 2:
+                    # Para la tercera línea, truncar lo que queda
+                    remaining_words = ' '.join([word] + words[words.index(word) + 1:])
+                    if len(remaining_words) > chars_per_line - 3:
+                        # Buscar punto de corte natural
+                        if ' ' in remaining_words[:chars_per_line - 3]:
+                            cut_point = remaining_words[:chars_per_line - 3].rfind(' ')
+                            if cut_point > 10:  # Asegurar que queda algo legible
+                                lines.append(remaining_words[:cut_point] + "...")
                             else:
-                                lines.append(remaining_text[:22] + "...")
+                                lines.append(remaining_words[:chars_per_line - 6] + "...")
                         else:
-                            lines.append(remaining_text[:22] + "...")
+                            lines.append(remaining_words[:chars_per_line - 6] + "...")
                     else:
-                        lines.append(remaining_text)
+                        lines.append(remaining_words)
                     break
 
+            # Agregar palabra a línea actual
+            current_line.append(word)
+            current_length += word_len + space_len
+
+        # Agregar última línea si no llegamos al límite
         if current_line and len(lines) < 3:
             lines.append(' '.join(current_line))
 
-        # Si solo hay una línea, devolver como string
+        # Devolver resultado
         if len(lines) == 1:
             return lines[0]
-        else:
+        elif len(lines) == 2:
+            return lines
+        else:  # 3 líneas
             return lines
 
 
