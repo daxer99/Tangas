@@ -226,7 +226,7 @@ class PaulinaScraper:
 
 
 class ImageGenerator:
-    def generate_product_image(self, product_data, price_formula="x * 1.3"):
+    def generate_product_image(self, product_data, price_formula="x * 1.55"):
         try:
             print(f"🎨 Generando imagen para: {product_data['name']}")
 
@@ -525,7 +525,7 @@ class ImageGenerator:
 
         except Exception as e:
             print(f"❌ Error en fórmula, usando valor por defecto: {e}")
-            return self.smart_round_price(original_price * 1.3, "x * 1.3")
+            return self.smart_round_price(original_price * 1.55, "x * 1.55")
 
     def smart_round_price(self, price, formula):
         """
@@ -685,7 +685,7 @@ def debug_scrape():
 def generate_image():
     data = request.json
     url = data.get('url')
-    formula = data.get('formula', 'x * 1.3')
+    formula = data.get('formula', 'x * 1.55')
 
     if not url:
         return jsonify({'success': False, 'error': 'URL requerida'})
@@ -719,7 +719,7 @@ def download_file(image_id):
     try:
         # Obtener parámetros de la URL
         product_url = request.args.get('url')
-        formula = request.args.get('formula', 'x * 1.3')
+        formula = request.args.get('formula', 'x * 1.55')
 
         if not product_url:
             return jsonify({'success': False, 'error': 'URL no proporcionada'})
