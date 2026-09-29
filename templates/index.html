@@ -210,7 +210,7 @@
                     <input type="url" id="productUrl" required
                            placeholder=""
                            value="">
-                    <small>Ejemplo: https://paulinamayorista.com.ar/productoparticular.php?id=5541</small>
+                    <small>Ejemplo: https://paulinamayorista.com.ar/bikinis/ka634m-bikini-tricot-brillante-y-colaless</small>
                 </div>
 
                 <div class="form-group">
@@ -363,7 +363,9 @@
 
                     // Calcular precio con fórmula
                     const originalPrice = data.product_data.price;
-                    const calculatedPrice = calculatePrice(originalPrice, formula);
+                    const calculatedPrice = (typeof data.calculated_price === 'number')
+                        ? data.calculated_price
+                        : calculatePrice(originalPrice, formula);
                     document.getElementById('calculatedPrice').textContent = calculatedPrice.toFixed(2);
                     document.getElementById('formulaUsed').textContent = formula;
 
